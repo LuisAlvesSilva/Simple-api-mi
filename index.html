@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal de Manuais Técnicos</title>
+  <style>
+    :root[data-theme="dark"] {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --border-color: #334155;
+      --accent-color: #0284c7;
+      --accent-hover: #0369a1;
+      --input-bg: #0f172a;
+    }
+
+    :root[data-theme="light"] {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-color: #0f172a;
+      --border-color: #e2e8f0;
+      --accent-color: #0284c7;
+      --accent-hover: #0369a1;
+      --input-bg: #f1f5f9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .header h1 { font-size: 1.25rem; font-weight: 600; }
+
+    .theme-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      color: #94a3b8;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      outline: none;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    select:focus {
+      border-color: var(--accent-color);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background-color 0.2s;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status-msg {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      text-align: center;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>Portal de Manuais</h1>
+      <button class="theme-toggle" id="themeIcon" onclick="toggleTheme()"></button>
+    </div>
+
+    <div class="form-group">
+      <label for="selectMarca">Marca</label>
+      <select id="selectMarca"><option value="">Aguardando dados...</option></select>
+    </div>
+
+    <div class="form-group">
+      <label for="selectModelo">Modelo</label>
+      <select id="selectModelo" disabled><option value="">Modelo</option></select>
+    </div>
+
+    <div class="form-group">
+      <label for="selectEdicao">Edição / Acessório</label>
+      <select id="selectEdicao" disabled><option value="">Edição</option></select>
+    </div>
+
+    <div class="form-group">
+      <label for="selectPN">Part Number (PN)</label>
+      <select id="selectPN" disabled><option value="">PN</option></select>
+    </div>
+
+    <button id="btnAbrir" class="btn-submit" disabled onclick="abrirManual()">Abrir Manual</button>
+    <div id="statusMsg" class="status-msg">Carregando dados do SharePoint...</div>
+  </div>
+
+  <script>
+    // Adiciona o prefixo do corsproxy.io para ignorar a restrição de CORS localmente
+    const IQY_ENDPOINT = "https://shiftup.sharepoint.com/sites/EAS-EngenhariaAfterSales/_vti_bin/owssvr.dll?XMLDATA=1&List=e99c5144-79c5-4f53-9a03-1ce91fc05c75&View=CC3375A3-B18A-45D4-88BB-DBB2778D1881&RowLimit=0&RootFolder=%2fsites%2fEAS%2dEngenhariaAfterSales%2fShared%20Documents%2fGeneral%2f01%20%2d%20GERENCIAMENTO";
+    let database = {};
+
+    // Alternador de tema
+    const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93-1.41 1.41"/></svg>`;
+    const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`;
+
+    function updateThemeUI(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('themeIcon').innerHTML = theme === 'dark' ? moonIcon : sunIcon;
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      updateThemeUI(current === 'dark' ? 'light' : 'dark');
+    }
+
+    // Processamento estrito baseado na estrutura de pastas
+    async function initSaaS() {
+      const status = document.getElementById('statusMsg');
+      try {
+        const response = await fetch(IQY_ENDPOINT, { method: "GET" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+        let rows = xmlDoc.getElementsByTagName("z:row");
+        if (rows.length === 0) rows = xmlDoc.getElementsByTagNameNS("*", "row");
+
+        database = {};
+
+        Array.from(rows).forEach(row => {
+          const rawFileRef = row.getAttribute("ows_FileRef") || row.getAttribute("FileRef") || "";
+          let cleanPath = rawFileRef.replace(/^\d+;\#/, "");
+          if (!cleanPath) return;
+
+          try { cleanPath = decodeURIComponent(cleanPath); } catch (e) {}
+          if (!cleanPath.toLowerCase().endsWith(".pdf")) return;
+
+          const fileUrl = `https://shiftup.sharepoint.com/${cleanPath}`;
+          const pathSegments = cleanPath.split("/").filter(s => s.trim() !== "");
+          const fileName = pathSegments[pathSegments.length - 1];
+          const folders = pathSegments.slice(0, pathSegments.length - 1);
+
+          // Padrão estrito: ... / MARCA / MODELO / 04 - ACESSORIOS / ACESSORIO / 05 - MANUAIS DE INSTRUÇÃO
+          const idxAcessorios = folders.findIndex(f => f.toUpperCase().includes("04 - ACESSORIOS") || f.toUpperCase().includes("04 - ACESSÓRIOS"));
+
+          // Ignora qualquer arquivo fora da hierarquia estrita
+          if (idxAcessorios < 2) return;
+
+          const marca = folders[idxAcessorios - 2].trim();
+          const modelo = folders[idxAcessorios - 1].trim();
+          let edicao = folders.length > idxAcessorios + 1 ? folders[idxAcessorios + 1].trim() : "GERAL";
+
+          let pn = fileName.replace(/\.pdf$/i, "");
+          const pnMatch = fileName.match(/\b\d{7,8}\b/);
+          if (pnMatch) pn = `PN ${pnMatch[0]}`;
+
+          if (!database[marca]) database[marca] = {};
+          if (!database[marca][modelo]) database[marca][modelo] = {};
+          if (!database[marca][modelo][edicao]) database[marca][modelo][edicao] = [];
+
+          database[marca][modelo][edicao].push({ pn, url: fileUrl });
+        });
+
+        status.textContent = "Base atualizada com sucesso.";
+        listBrand();
+
+      } catch (err) {
+        console.error(err);
+        status.textContent = "Erro de conexão/autenticação ao carregar a query do SharePoint.";
+      }
+    }
+
+    function listBrand() {
+      const selectMarca = document.getElementById('selectMarca');
+      selectMarca.innerHTML = '<option value="">Selecione a Marca</option>';
+
+      Object.keys(database).sort().forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        selectMarca.appendChild(opt);
+      });
+    }
+
+    function listModel() {
+      const marca = document.getElementById('selectMarca').value;
+      const selectModelo = document.getElementById('selectModelo');
+      const selectEdicao = document.getElementById('selectEdicao');
+      const selectPN = document.getElementById('selectPN');
+      const btnAbrir = document.getElementById('btnAbrir');
+
+      selectModelo.innerHTML = '<option value="">Selecione o Modelo</option>';
+      selectEdicao.innerHTML = '<option value="">Edição</option>';
+      selectPN.innerHTML = '<option value="">PN</option>';
+      selectEdicao.disabled = true;
+      selectPN.disabled = true;
+      btnAbrir.disabled = true;
+
+      if (marca && database[marca]) {
+        selectModelo.disabled = false;
+        Object.keys(database[marca]).sort().forEach(mod => {
+          const opt = document.createElement('option');
+          opt.value = mod;
+          opt.textContent = mod;
+          selectModelo.appendChild(opt);
+        });
+      } else {
+        selectModelo.disabled = true;
+      }
+    }
+
+    function listEdit() {
+      const marca = document.getElementById('selectMarca').value;
+      const modelo = document.getElementById('selectModelo').value;
+      const selectEdicao = document.getElementById('selectEdicao');
+      const selectPN = document.getElementById('selectPN');
+      const btnAbrir = document.getElementById('btnAbrir');
+
+      selectEdicao.innerHTML = '<option value="">Selecione a Edição / Acessório</option>';
+      selectPN.innerHTML = '<option value="">PN</option>';
+      selectPN.disabled = true;
+      btnAbrir.disabled = true;
+
+      if (marca && modelo && database[marca][modelo]) {
+        selectEdicao.disabled = false;
+        Object.keys(database[marca][modelo]).sort().forEach(e => {
+          const opt = document.createElement('option');
+          opt.value = e;
+          opt.textContent = e;
+          selectEdicao.appendChild(opt);
+        });
+      } else {
+        selectEdicao.disabled = true;
+      }
+    }
+
+    function listPn() {
+      const marca = document.getElementById('selectMarca').value;
+      const modelo = document.getElementById('selectModelo').value;
+      const edicao = document.getElementById('selectEdicao').value;
+      const selectPN = document.getElementById('selectPN');
+      const btnAbrir = document.getElementById('btnAbrir');
+
+      selectPN.innerHTML = '<option value="">Selecione o PN</option>';
+      btnAbrir.disabled = true;
+
+      if (marca && modelo && edicao && database[marca][modelo][edicao]) {
+        selectPN.disabled = false;
+        database[marca][modelo][edicao].forEach(item => {
+          const opt = document.createElement('option');
+          opt.value = item.url;
+          opt.textContent = item.pn;
+          selectPN.appendChild(opt);
+        });
+      } else {
+        selectPN.disabled = true;
+      }
+    }
+
+    function validateSelection() {
+      const selectPN = document.getElementById('selectPN');
+      document.getElementById('btnAbrir').disabled = !selectPN.value;
+    }
+
+    function abrirManual() {
+      const url = document.getElementById('selectPN').value;
+      if (url) window.open(url, '_blank');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateThemeUI('dark');
+      initSaaS();
+
+      document.getElementById('selectMarca').addEventListener('change', listModel);
+      document.getElementById('selectModelo').addEventListener('change', listEdit);
+      document.getElementById('selectEdicao').addEventListener('change', listPn);
+      document.getElementById('selectPN').addEventListener('change', validateSelection);
+    });
+  </script>
+</body>
+</html>
