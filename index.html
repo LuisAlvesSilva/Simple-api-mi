@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portal de Manuais Técnicos</title>
+  <title>Portal de Manuais Mopar</title>
   <style>
     :root[data-theme="dark"] {
       --bg-color: #0f172a;
@@ -156,7 +156,7 @@
 
   <script>
     // Adiciona o prefixo do corsproxy.io para ignorar a restrição de CORS localmente
-    const IQY_ENDPOINT = "https://shiftup.sharepoint.com/sites/EAS-EngenhariaAfterSales/_vti_bin/owssvr.dll?XMLDATA=1&List=e99c5144-79c5-4f53-9a03-1ce91fc05c75&View=CC3375A3-B18A-45D4-88BB-DBB2778D1881&RowLimit=0&RootFolder=%2fsites%2fEAS%2dEngenhariaAfterSales%2fShared%20Documents%2fGeneral%2f01%20%2d%20GERENCIAMENTO";
+    const IQY_ENDPOINT = "https://shiftup.sharepoint.com/sites/EAS-EngenhariaAfterSales/_api/web/GetFolderByServerRelativeUrl('/sites/EAS-EngenhariaAfterSales/Shared Documents/General')";
     let database = {};
 
     // Alternador de tema
@@ -228,7 +228,10 @@
 
       } catch (err) {
         console.error(err);
-        status.textContent = "Erro de conexão/autenticação ao carregar a query do SharePoint.";
+        status.innerHTML = `Erro de autenticação (401). 
+          <br><a href="https://shiftup.sharepoint.com/sites/EAS-EngenhariaAfterSales" target="_blank" style="color: #38bdf8; text-decoration: underline;">
+            Clique aqui para entrar no SharePoint
+          </a> e recarregue a página após o login.`;
       }
     }
 
